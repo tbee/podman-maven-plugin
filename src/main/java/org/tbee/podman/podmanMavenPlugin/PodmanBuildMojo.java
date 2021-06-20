@@ -1,6 +1,10 @@
 package org.tbee.podman.podmanMavenPlugin;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
@@ -9,21 +13,32 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
+import edu.emory.mathcs.backport.java.util.Arrays;
+
+
 /**
  * The goal that builds, and if successful tags, a container image usually during install.
  */
-@Mojo(name = "podman-build", defaultPhase = LifecyclePhase.INSTALL)
+@Mojo(name = "build", defaultPhase = LifecyclePhase.INSTALL)
 public class PodmanBuildMojo extends AbstractMojo
 {
 	@Parameter(defaultValue = "${project}", required = true, readonly = true)
 	MavenProject project;
 	
     /**
-     * Location of the file.
+     * Location of the container file.
      */
 	@Parameter(defaultValue = "src/main/container/Containerfile", required = true, readonly = false)
     private File containerFile;
 
+    /**
+     * tags
+     */
+	@Parameter(required = false, readonly = false)
+    private String[] tags;
+
+	// TODO: quiet
+	
 	/**
 	 * 
 	 */
@@ -34,7 +49,66 @@ public class PodmanBuildMojo extends AbstractMojo
         if ( !f.exists() ) {
             throw new MojoExecutionException("Container file does not exist: " + containerFile.getAbsolutePath());
         }
+        
+        // build
+        String imageId = execute("podman", "build", "--file", containerFile.getAbsolutePath(), ".");
+        
+        // tag
+        if (tags != null && tags.length > 0) {
+        	List<String> tagList = Arrays.asList(tags);
+        	
+        	// rmi
+        	{
+	        	List<String> command = new ArrayList<>();
+	        	command.add("podman");
+	        	command.add("rmi");
+	        	command.addAll(tagList);
+	        	execute(command);
+        	}
+        	
+        	// tag
+        	{
+	        	List<String> command = new ArrayList<>();
+	        	command.add("podman");
+	        	command.add("tag");
+	        	command.add(imageId);
+	        	command.addAll(tagList);
+	        	execute(command);
+        	}
+        }
     }
+    
+    /* */
+    private String execute(String... args) throws MojoExecutionException {
+        try {
+	        // kick off the build process
+	        ProcessBuilder processBuilder = new ProcessBuilder();
+	        processBuilder.command(args);
+	        
+	        // execute command
+	        System.out.println(Arrays.asList(args));
+			Process process = processBuilder.start();
+			AtomicReference<String> lastLineReference = new AtomicReference<>(null);
+			StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), s -> {
+				System.out.println(s);
+				lastLineReference.set(s);
+			});
+			Executors.newSingleThreadExecutor().submit(streamGobbler);
+			int exitCode = process.waitFor();
+			if (exitCode != 0) {
+	            throw new MojoExecutionException(Arrays.asList(args) + " did not finish successfully: " + exitCode);				
+			}
+			String lastLine = lastLineReference.get();
+			return lastLine;
+        }
+        catch (Exception e) {
+        	throw new MojoExecutionException(e.getMessage(), e);
+        }
+        
+    }
+    private String execute(List<String> args) throws MojoExecutionException {
+    	return execute(args.toArray(new String[] {}));
+    }    
     
 /*
 			<!-- http://docs.podman.io/en/latest/Commands.html -->

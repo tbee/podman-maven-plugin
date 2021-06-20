@@ -10,8 +10,8 @@ import org.apache.maven.project.MavenProject;
 /**
  * 
  */
-@Mojo(name = "podman-deploy", defaultPhase = LifecyclePhase.DEPLOY)
-public class PodmanDeployMojo extends AbstractMojo
+@Mojo(name = "push", defaultPhase = LifecyclePhase.DEPLOY)
+public class PodmanPushMojo extends AbstractMojo
 {
 	@Parameter(defaultValue = "${project}", required = true, readonly = true)
 	MavenProject project;
