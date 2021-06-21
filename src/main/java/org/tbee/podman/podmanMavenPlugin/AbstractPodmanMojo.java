@@ -11,10 +11,15 @@ import org.apache.maven.project.MavenProject;
 
 import edu.emory.mathcs.backport.java.util.Arrays;
 
+// TODO: quiet
+// TODO: per default hide command because of password
+// TODO: verbose (show the whole command)
+// TODO: can we derrive the contained id from the project?
+
 /*
  * 
  */
-abstract class AbstractPodmanMojo extends AbstractMojo
+abstract public class AbstractPodmanMojo extends AbstractMojo
 {
 	@Parameter(defaultValue = "${project}", required = true, readonly = true)
 	protected MavenProject project;
@@ -24,6 +29,22 @@ abstract class AbstractPodmanMojo extends AbstractMojo
      */
 	@Parameter(required = false, readonly = false)
 	protected String[] tags;
+
+    /**
+     * registry
+     */
+	@Parameter(required = false, readonly = false)
+	protected Registry registry;
+	static public class Registry {
+		public String hostname;
+		public String url;
+		public String user;
+		public String password;
+		
+		public String toString() {
+			return user + "@" + url;
+		}
+	}
 
     /* */
     protected String execute(List<String> args, List<Integer> exitCodes) throws MojoExecutionException {
