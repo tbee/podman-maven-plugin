@@ -36,6 +36,7 @@ This opinionated flow means that the whole sequence of podman build, rmi, tag, l
 			<containerFile>src/main/container/Containerfile</containerFile>
 			<tags>
 				<tag>${containerImageId}:${project.version}</tag>
+				<tag>${containerImageId}:latest</tag>
 			</tags>
 			<registry>
 				<hostname>docker.io</hostname>					
@@ -47,4 +48,4 @@ This opinionated flow means that the whole sequence of podman build, rmi, tag, l
 	</plugin>
 ```
 
-The user and password are defined as properties in Maven's settings.xml.
+The user and password are defined as properties in Maven's settings.xml. It is highly unusual that a container image is pushed to more than one repository, so the configuration only supports one registry; because it simply requires two less lines.
