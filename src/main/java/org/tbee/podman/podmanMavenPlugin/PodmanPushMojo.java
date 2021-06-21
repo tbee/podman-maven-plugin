@@ -1,25 +1,50 @@
 package org.tbee.podman.podmanMavenPlugin;
 
-import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
 
 /**
  * 
  */
 @Mojo(name = "push", defaultPhase = LifecyclePhase.DEPLOY)
-public class PodmanPushMojo extends AbstractMojo
+public class PodmanPushMojo extends AbstractPodmanMojo
 {
-	@Parameter(defaultValue = "${project}", required = true, readonly = true)
-	MavenProject project;
+    /**
+     * registries
+     */
+	@Parameter(required = true, readonly = false)
+    private Registry[] registries;
+	static public class Registry {
+		public String hostname;
+		public String url;
+		public String user;
+		public String password;
+		
+		public String toString() {
+			return user + "@" + url;
+		}
+	}
 	
 	/**
 	 * 
 	 */
-    public void execute() throws MojoExecutionException
-    {
+    public void execute() throws MojoExecutionException {
+    	
+    	if (registries != null && registries.length > 0) {
+    		
+        	// login
+    		for (Registry registry : registries) {
+            	execute("podman", "login", "-u", registry.user, "-p", registry.password, registry.url);
+    		};
+
+    		// push
+    		for (Registry registry : registries) {
+    			for (String tag : tags) {
+    				execute("podman", "push", registry.hostname + "/" + tag);
+    			}
+    		};
+    	}
     }
 }
