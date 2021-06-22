@@ -1,6 +1,5 @@
 package org.tbee.podman.podmanMavenPlugin;
 
-import java.io.File;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
@@ -8,13 +7,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
-import org.apache.maven.project.MavenProject;
 
 import edu.emory.mathcs.backport.java.util.Arrays;
 
-// TODO: quiet
-// TODO: per default hide command because of password
-// TODO: verbose (show the whole command)
 // TODO: can we derrive the contained id from the project?
 
 /*
@@ -22,9 +17,6 @@ import edu.emory.mathcs.backport.java.util.Arrays;
  */
 abstract public class AbstractPodmanMojo extends AbstractMojo
 {
-	@Parameter(defaultValue = "${project}", required = true, readonly = true)
-	protected MavenProject project;
-	
     /**
      * List all output (including possible passwords, etc)
      */
@@ -36,12 +28,6 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
      */
 	@Parameter(defaultValue = "false", required = true, readonly = false)
 	protected Boolean silent;
-
-    /**
-     * Location of the container file.
-     */
-	@Parameter(defaultValue = "src/main/container/Containerfile", required = true, readonly = false)
-	protected File containerFile;
 
     /**
      * tags

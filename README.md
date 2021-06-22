@@ -5,6 +5,9 @@ If this does not fit your needs, it often is more easy to simply use the exec-ma
 
 The approach and workflow this plugin implements is:
 
+ImageId goal:
+* In Maven's initialize phase a container image id is generated from the project's group and artifact id, and stored in a property variable.
+
 Build goal:
 * In Maven's install phase "podman build" is called.
 * If successful, the build is tagged with the configured tags.
@@ -27,6 +30,7 @@ This opinionated flow means that the whole sequence of podman build, rmi, tag, l
 		<executions>
 			<execution>
 				<goals>
+					<goal>imageId</goal>
 					<goal>build</goal>
 					<goal>push</goal>
 				</goals>
