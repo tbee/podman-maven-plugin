@@ -7,7 +7,6 @@ import java.util.List;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
-import org.apache.maven.plugins.annotations.Parameter;
 
 
 /**
@@ -16,12 +15,6 @@ import org.apache.maven.plugins.annotations.Parameter;
 @Mojo(name = "build", defaultPhase = LifecyclePhase.INSTALL)
 public class PodmanBuildMojo extends AbstractPodmanMojo
 {
-    /**
-     * Location of the container file.
-     */
-	@Parameter(defaultValue = "src/main/container/Containerfile", required = true, readonly = false)
-    private File containerFile;
-
 	/**
 	 * 
 	 */

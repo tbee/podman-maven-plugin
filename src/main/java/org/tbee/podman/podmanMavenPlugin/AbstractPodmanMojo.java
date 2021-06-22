@@ -1,5 +1,6 @@
 package org.tbee.podman.podmanMavenPlugin;
 
+import java.io.File;
 import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
@@ -24,6 +25,24 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 	@Parameter(defaultValue = "${project}", required = true, readonly = true)
 	protected MavenProject project;
 	
+    /**
+     * List all output (including possible passwords, etc)
+     */
+	@Parameter(defaultValue = "false", required = true, readonly = false)
+	protected Boolean verbose;
+
+    /**
+     * No output at all
+     */
+	@Parameter(defaultValue = "false", required = true, readonly = false)
+	protected Boolean silent;
+
+    /**
+     * Location of the container file.
+     */
+	@Parameter(defaultValue = "src/main/container/Containerfile", required = true, readonly = false)
+	protected File containerFile;
+
     /**
      * tags
      */
@@ -54,11 +73,23 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 	        processBuilder.command(args);
 	        
 	        // execute command
-	        System.out.println(args);
+	        if (verbose) {
+	        	String commandText = "";
+	        	for (String arg : args) {
+	        		commandText += arg + " ";
+	        	}
+	        	getLog().debug(commandText);	        	
+	        }
+	        else {
+	        	getLog().info(args.get(0) + " " + args.get(1));	        		        	
+	        }
+	        
 			Process process = processBuilder.start();
 			AtomicReference<String> lastLineReference = new AtomicReference<>(null);
 			StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), s -> {
-				System.out.println(s);
+				if (!silent) {
+					getLog().info(s);
+				}
 				lastLineReference.set(s);
 			});
 			Executors.newSingleThreadExecutor().submit(streamGobbler);
