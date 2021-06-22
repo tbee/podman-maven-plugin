@@ -3,23 +3,7 @@
 This is an opinionated Podman maven plugin, which means that it implements a certain approach and workflow to using Podman.
 If this does not fit your needs, it often is more easy to simply use the exec-maven-plugin and execute podman to your liking.
 
-The approach and workflow this plugin implements is:
-
-ImageId goal:
-* In Maven's initialize phase a container image id is generated from the project's group and artifact id, and stored in a property variable.
-
-Build goal:
-* In Maven's install phase "podman build" is called.
-* If successful, the build is tagged with the configured tags.
-
-Push goal:
-* In Maven's deploy phase, a login is performed on the configured registry.
-* If successful, for each configured tag a second tag is added by prefixing it with the registry's hostname for pushing to the registry.
-* Next "podman push" is called for each tag.
-
-Tags are removed using "podman rmi" prior to creating a new tag, ignoring any errors.
-
-This opinionated flow means that the whole sequence of podman build, rmi, tag, login and push is configured using the configuration below:
+This opinionated approach means that the whole sequence of podman build, rmi, tag, login and push is configured using the configuration below:
 
 
 ```xml
@@ -52,4 +36,20 @@ This opinionated flow means that the whole sequence of podman build, rmi, tag, l
 	</plugin>
 ```
 
-The user and password are defined as properties in Maven's settings.xml. It is highly unusual that a container image is pushed to more than one repository, so the configuration only supports one registry; because it simply requires two less lines.
+The user and password are defined as properties in Maven's settings.xml. It is highly unusual that a container image is pushed to more than one repository, so the configuration only supports one registry; because it simply requires twos lines less.
+
+The approach this plugin implements is:
+
+ImageId goal:
+* In Maven's initialize phase a container image id is generated from the project's group and artifact id, and stored in a property variable.
+
+Build goal:
+* In Maven's install phase "podman build" is called.
+* If successful, the build is tagged with the configured tags.
+
+Push goal:
+* In Maven's deploy phase, a login is performed on the configured registry.
+* If successful, for each configured tag a second tag is added by prefixing it with the registry's hostname for pushing to the registry.
+* Next "podman push" is called for each tag.
+
+Prior to tagging any existing tags are removed using "podman rmi", ignoring any errors.
