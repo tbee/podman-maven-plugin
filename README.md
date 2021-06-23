@@ -36,7 +36,7 @@ This opinionated approach means that the whole sequence of podman build, rmi, ta
 	</plugin>
 ```
 
-The user and password are defined as properties in Maven's settings.xml. It is highly unusual that a container image is pushed to more than one repository, so the configuration only supports one registry; because it simply requires twos lines less.
+The user and password are defined as properties in Maven's settings.xml. 
 
 The approach this plugin implements is:
 
@@ -53,3 +53,5 @@ Push goal:
 * Next "podman push" is called for each tag.
 
 Prior to tagging any existing tags are removed using "podman rmi", ignoring any errors.
+
+The registry entry is where the image is pushed to, additional registries for pull only can be added using "registries". If you want to pull from the registry, set "pullFromRegistry" to true.
