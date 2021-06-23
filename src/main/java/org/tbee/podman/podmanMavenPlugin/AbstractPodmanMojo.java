@@ -36,13 +36,13 @@ import edu.emory.mathcs.backport.java.util.Arrays;
 abstract public class AbstractPodmanMojo extends AbstractMojo
 {
     /**
-     * List all output (including possible passwords, etc)
+     * Show complete podman command line (including possible passwords)
      */
 	@Parameter(defaultValue = "false", required = true, readonly = false)
 	protected Boolean verbose;
 
     /**
-     * No output at all
+     * Does not copy the output of podman
      */
 	@Parameter(defaultValue = "false", required = true, readonly = false)
 	protected Boolean silent;
@@ -82,7 +82,7 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 	        	for (String arg : args) {
 	        		commandText += arg + " ";
 	        	}
-	        	getLog().debug(commandText);	        	
+	        	getLog().info(commandText);	        	
 	        }
 	        else {
 	        	getLog().info(args.get(0) + " " + args.get(1));	        		        	
