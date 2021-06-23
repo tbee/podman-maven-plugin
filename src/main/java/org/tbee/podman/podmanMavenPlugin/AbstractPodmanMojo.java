@@ -38,26 +38,27 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
     /**
      * Show complete podman command line (including possible passwords)
      */
-	@Parameter(defaultValue = "false", required = true, readonly = false)
+	@Parameter(property = "podman.verbose", defaultValue = "false", required = true, readonly = false)
 	protected Boolean verbose;
 
     /**
      * Does not copy the output of podman
      */
-	@Parameter(defaultValue = "false", required = true, readonly = false)
+	@Parameter(property = "podman.silent", defaultValue = "false", required = true, readonly = false)
 	protected Boolean silent;
 
     /**
      * tags
      */
-	@Parameter(required = false, readonly = false)
+	@Parameter(property = "podman.tags", required = false, readonly = false)
 	protected String[] tags;
 
     /**
-     * registry
+     * registry to push to (and with pullFromRegistry=true, also to pull from)
      */
-	@Parameter(required = false, readonly = false)
+	@Parameter(property = "podman.registry", required = false, readonly = false)
 	protected Registry registry;
+
 	static public class Registry {
 		public String hostname;
 		public String url;

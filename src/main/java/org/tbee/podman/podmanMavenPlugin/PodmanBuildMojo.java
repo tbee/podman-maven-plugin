@@ -29,6 +29,8 @@ import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
+import edu.emory.mathcs.backport.java.util.Arrays;
+
 
 /**
  * The goal that builds, and if successful tags, a container image usually during install.
@@ -39,9 +41,21 @@ public class PodmanBuildMojo extends AbstractPodmanMojo
     /**
      * Location of the container file.
      */
-	@Parameter(defaultValue = "src/main/container/Containerfile", required = true, readonly = false)
+	@Parameter(property = "podman.containerFile", defaultValue = "src/main/container/Containerfile", required = true, readonly = false)
 	protected File containerFile;
 
+    /**
+     * Additional registries used for pulling
+     */
+	@Parameter(property = "podman.registries", required = false, readonly = false)
+	protected Registry[] registries;
+	
+    /**
+     * Marks the registry entry we're push to also as the one we're pulling from, so a login is needed prior to pulling
+     */
+	@Parameter(property = "podman.registry", defaultValue = "false", required = true, readonly = false)
+	protected Boolean pullFromRegistry;
+	
 	/**
 	 * 
 	 */
@@ -52,6 +66,19 @@ public class PodmanBuildMojo extends AbstractPodmanMojo
         if ( !f.exists() ) {
             throw new MojoExecutionException("Container file does not exist: " + containerFile.getAbsolutePath());
         }
+        
+        // If login is needed
+        List<Registry> registries = new ArrayList<>();
+        if (pullFromRegistry && this.registry != null) {
+        	registries.add(this.registry);
+        }
+        if (this.registries != null) {
+        	registries.addAll(Arrays.asList(this.registries));
+        }
+        for (Registry registry : registries) {
+        	execute("podman", "login", "-u", registry.user, "-p", registry.password, registry.url);
+        }
+        
         
         // build
         String imageId = execute("podman", "build", "--file", containerFile.getAbsolutePath(), ".");

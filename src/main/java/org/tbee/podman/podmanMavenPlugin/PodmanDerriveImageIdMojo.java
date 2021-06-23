@@ -39,7 +39,7 @@ public class PodmanDerriveImageIdMojo extends AbstractMojo
     /**
      * Location of the container file.
      */
-	@Parameter(defaultValue = "containerImageId", required = true, readonly = false)
+	@Parameter(property = "podman.imageIdPropertyName", defaultValue = "containerImageId", required = true, readonly = false)
 	protected String imageIdPropertyName;
 
 	/**
