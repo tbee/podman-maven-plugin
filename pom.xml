@@ -8,6 +8,8 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>maven-plugin</packaging>
 
+	<!-- https://blog.sonatype.com/2010/01/how-to-generate-pgp-signatures-with-maven/ -->
+	<!-- https://central.sonatype.org/pages/apache-maven.html -->
 	<name>podman-maven-plugin Maven Mojo</name>
 	<description>Podman-maven-plugin implements an opinionated flow for podman build, tag, and push</description>
 	<url>https://github.com/tbee/podman-maven-plugin</url>
@@ -214,7 +216,7 @@
 				<executions>
 					<execution>
 						<id>sign-artifacts</id>
-						<phase>deploy</phase> <!-- see if this works instead of verify -->
+						<phase>deploy</phase>
 						<goals>
 							<goal>sign</goal>
 						</goals>
