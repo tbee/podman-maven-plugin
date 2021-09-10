@@ -54,4 +54,4 @@ Push goal:
 
 Prior to tagging any existing tags are removed using "podman rmi", ignoring any errors.
 
-The registry entry is where the image is pushed to, additional registries for pull only can be added using "registries". If you want to pull from the registry, set "pullFromRegistry" to true.
+The registry entry is where the image is pushed to, additional registries (for pull only) can be added using "registries". If you want to pull from the registry and need to login before building, set "pullFromRegistry" to true.
