@@ -20,7 +20,6 @@ package org.tbee.podman.podmanMavenPlugin;
  * #L%
  */
 
-import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.maven.plugin.MojoExecutionException;
@@ -51,8 +50,7 @@ public class PodmanPushMojo extends AbstractPodmanMojo
 	        		
 	            	// rmi
 	            	{
-	    	        	List<String> command = new ArrayList<>();
-	    	        	command.add("podman");
+	    	        	List<String> command = podmanCommand();
 	    	        	command.add("rmi");
 		        		command.add(pushTag);	        			
 		        		execute(command, List.of(0,1,125));
@@ -60,8 +58,7 @@ public class PodmanPushMojo extends AbstractPodmanMojo
             	
 	            	// tag
 		        	{
-	    	        	List<String> command = new ArrayList<>();
-	    	        	command.add("podman");
+	    	        	List<String> command = podmanCommand();
 	    	        	command.add("tag");
 	    	        	command.add(tag);
 		        		command.add(pushTag);	        			

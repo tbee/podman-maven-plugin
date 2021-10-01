@@ -85,28 +85,45 @@ public class PodmanBuildMojo extends AbstractPodmanMojo
         
         // tag
         if (tags != null && tags.length > 0) {
-        	
-        	// rmi
-        	{
-	        	List<String> command = new ArrayList<>();
-	        	command.add("podman");
-	        	command.add("rmi");
-	        	for (String tag : tags) {
-	        		command.add(tag);
+
+        	String tempTag = "tag"  + imageId;
+			try {
+	        	// place temporarily tag (to lock down the image)
+	        	{
+		        	List<String> command = podmanCommand();
+		        	command.add("tag");
+		        	command.add(imageId);
+	        		command.add(tempTag);
+		        	execute(command);
 	        	}
-	        	execute(command, List.of(0,1,125));
+	        	
+	        	// rmi (remove) any existing tags
+	        	{
+		        	List<String> command = podmanCommand();
+		        	command.add("rmi");
+		        	for (String tag : tags) {
+		        		command.add(tag);
+		        	}
+		        	execute(command, List.of(0,1,125));
+	        	}
+	        	
+	        	// tag again
+	        	{
+		        	List<String> command = podmanCommand();
+		        	command.add("tag");
+		        	command.add(imageId);
+		        	for (String tag : tags) {
+		        		command.add(tag);
+		        	}
+		        	execute(command);
+	        	}
         	}
-        	
-        	// tag
-        	{
-	        	List<String> command = new ArrayList<>();
-	        	command.add("podman");
-	        	command.add("tag");
-	        	command.add(imageId);
-	        	for (String tag : tags) {
-	        		command.add(tag);
-	        	}
-	        	execute(command);
+        	finally { 
+        		// rmi (remove) temporarily tag
+	        	List<String> command = podmanCommand();
+	        	command.add("rmi");
+        		command.add(tempTag);
+	        	execute(command, List.of(0,1,125));
         	}
         }
     }

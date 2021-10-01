@@ -1,5 +1,9 @@
 package org.tbee.podman.podmanMavenPlugin;
 
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+
 /*-
  * #%L
  * podman-maven-plugin
@@ -21,7 +25,6 @@ package org.tbee.podman.podmanMavenPlugin;
  */
 
 import java.util.List;
-import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.maven.plugin.AbstractMojo;
@@ -53,6 +56,12 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 	protected Boolean silent;
 
     /**
+     * Lets podman generate debug outpu 
+     */
+	@Parameter(property = "podman.debug", defaultValue = "false", required = true, readonly = false)
+	protected Boolean debug;
+
+    /**
      * tags
      */
 	@Parameter(property = "podman.tags", required = false, readonly = false)
@@ -74,6 +83,17 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 			return user + "@" + url;
 		}
 	}
+	
+	/* */
+	protected List<String> podmanCommand() {
+    	List<String> command = new ArrayList<>();
+		command.add("podman");
+		if (debug) {
+			command.add("--log-level");
+			command.add("debug");
+		}
+		return command;
+	}
 
     /* */
     protected String execute(List<String> args, List<Integer> exitCodes) throws MojoExecutionException {
@@ -89,21 +109,37 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 	        	for (String arg : args) {
 	        		commandText += arg + " ";
 	        	}
-	        	getLog().info(new java.io.File(".").getAbsolutePath() + ": " + commandText);	        	
+	        	getLog().info(project.getBasedir().getAbsolutePath() + ": " + commandText);	        	
 	        }
 	        else {
 	        	getLog().info(args.get(0) + " " + args.get(1));	        		        	
-	        }
-	        
+	        }	        
 			Process process = processBuilder.start();
+			
+			// read output
 			AtomicReference<String> lastLineReference = new AtomicReference<>(null);
-			StreamGobbler streamGobbler = new StreamGobbler(process.getInputStream(), s -> {
-				if (!silent) {
-					getLog().info(s);
+			try (
+				BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))
+			) {
+				String line;
+				while ((line = reader.readLine()) != null) {
+					if (!silent) {
+						getLog().info(line);
+					}
+					lastLineReference.set(line); // capture last line to get to the imageId after a build
 				}
-				lastLineReference.set(s);
-			});
-			Executors.newSingleThreadExecutor().submit(streamGobbler);
+			}
+			// read error
+			try (
+				BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()))
+			) {
+				String line;
+				while ((line = reader.readLine()) != null) {
+					getLog().error(line);
+				}
+			}
+			
+			// wait for completion
 			int exitCode = process.waitFor();
 			if (!exitCodes.contains(exitCode)) {
 	            throw new MojoExecutionException(args + " did not finish successfully: " + exitCode);				
@@ -116,10 +152,10 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
         }
         
     }
-    protected  String execute(List<String> args) throws MojoExecutionException {
+    protected String execute(List<String> args) throws MojoExecutionException {
     	return execute(args, List.of(0));    	
     }
-    protected  String execute(String... args) throws MojoExecutionException {
+    protected String execute(String... args) throws MojoExecutionException {
     	return execute(Arrays.asList(args), List.of(0));
     }    
 }
