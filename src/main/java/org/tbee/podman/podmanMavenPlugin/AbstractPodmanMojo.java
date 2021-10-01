@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.Parameter;
+import org.apache.maven.project.MavenProject;
 
 import edu.emory.mathcs.backport.java.util.Arrays;
 
@@ -35,6 +36,10 @@ import edu.emory.mathcs.backport.java.util.Arrays;
  */
 abstract public class AbstractPodmanMojo extends AbstractMojo
 {
+	// get access to the project parameters (pom.xml)
+	@Parameter(defaultValue="${project}", readonly=true, required=true)
+	protected MavenProject project;
+
     /**
      * Show complete podman command line (including possible passwords)
      */
@@ -75,6 +80,7 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
         try {
 	        // kick off the build process
 	        ProcessBuilder processBuilder = new ProcessBuilder();
+	        processBuilder.directory(project.getBasedir()); // set the working directory to the location of the pom.xml
 	        processBuilder.command(args);
 	        
 	        // execute command
@@ -83,7 +89,7 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 	        	for (String arg : args) {
 	        		commandText += arg + " ";
 	        	}
-	        	getLog().info(commandText);	        	
+	        	getLog().info(new java.io.File(".").getAbsolutePath() + ": " + commandText);	        	
 	        }
 	        else {
 	        	getLog().info(args.get(0) + " " + args.get(1));	        		        	
