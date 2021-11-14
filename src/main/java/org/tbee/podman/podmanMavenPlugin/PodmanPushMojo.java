@@ -40,7 +40,19 @@ public class PodmanPushMojo extends AbstractPodmanMojo
     	if (registry != null) {
     		
         	// login
-        	execute("podman", "login", "-u", registry.user, "-p", registry.password, registry.url);
+        	{
+	        	List<String> command = podmanCommand();
+	        	command.add("login");
+	        	command.add("-u");
+	        	command.add(registry.user);
+	        	command.add("-p");
+	        	command.add(registry.password);
+	        	if (insecure) {
+	        		command.add("--tls-verify=false");
+	        	}
+	        	command.add(registry.hostname);
+	        	execute(command);
+        	}
 
             // tag
             if (tags != null && tags.length > 0) {
@@ -65,8 +77,17 @@ public class PodmanPushMojo extends AbstractPodmanMojo
 	    	        	execute(command);
 		        	}
 
-		        	// push
-	        		execute("podman", "push", pushTag);
+	            	
+	            	// tag
+		        	{
+	    	        	List<String> command = podmanCommand();
+	    	        	command.add("push");
+	    	        	if (insecure) {
+	    	        		command.add("--tls-verify=false");
+	    	        	}
+		        		command.add(pushTag);	        			
+	    	        	execute(command);
+		        	}
 	        	}
 			}
     	}

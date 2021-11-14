@@ -44,6 +44,12 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 	protected MavenProject project;
 
     /**
+     * Use insecure communication
+     */
+	@Parameter(property = "podman.insecure", defaultValue = "false", required = true, readonly = false)
+	protected Boolean insecure;
+
+    /**
      * Show complete podman command line (including possible passwords)
      */
 	@Parameter(property = "podman.verbose", defaultValue = "false", required = true, readonly = false)
@@ -88,10 +94,9 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 	protected List<String> podmanCommand() {
     	List<String> command = new ArrayList<>();
 		command.add("podman");
-		if (debug) {
-			command.add("--log-level");
-			command.add("debug");
-		}
+    	if (debug) {
+    		command.add("--log-level=debug");
+    	}
 		return command;
 	}
 
