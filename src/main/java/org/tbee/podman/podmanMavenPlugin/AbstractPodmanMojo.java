@@ -90,7 +90,6 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 		}
 	}
 	
-	/* */
 	protected List<String> podmanCommand() {
     	List<String> command = new ArrayList<>();
 		command.add("podman");
@@ -100,7 +99,6 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 		return command;
 	}
 
-    /* */
     protected String execute(List<String> args, List<Integer> exitCodes) throws MojoExecutionException {
         try {
 	        // kick off the build process

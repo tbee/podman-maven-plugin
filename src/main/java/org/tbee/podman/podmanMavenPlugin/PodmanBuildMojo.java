@@ -2,9 +2,9 @@ package org.tbee.podman.podmanMavenPlugin;
 
 /*-
  * #%L
- * TeslaAPI
+ * podman-maven-plugin
  * %%
- * Copyright (C) 2020 - 2021 Tom Eugelink
+ * Copyright (C) 2020 - 2025 Tom Eugelink
  * %%
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,13 +31,12 @@ import org.apache.maven.plugins.annotations.Parameter;
 
 import edu.emory.mathcs.backport.java.util.Arrays;
 
-
 /**
  * The goal that builds, and if successful tags, a container image usually during install.
  */
 @Mojo(name = "build", defaultPhase = LifecyclePhase.INSTALL)
-public class PodmanBuildMojo extends AbstractPodmanMojo
-{
+public class PodmanBuildMojo extends AbstractPodmanMojo {
+
     /**
      * Location of the container file.
      */
@@ -56,11 +55,8 @@ public class PodmanBuildMojo extends AbstractPodmanMojo
 	@Parameter(property = "podman.registry", defaultValue = "false", required = true, readonly = false)
 	protected Boolean pullFromRegistry;
 	
-	/**
-	 * 
-	 */
-    public void execute() throws MojoExecutionException
-    {
+    public void execute() throws MojoExecutionException {
+
     	// check containerFile
         File f = containerFile;
         if ( !f.exists() ) {
@@ -81,7 +77,8 @@ public class PodmanBuildMojo extends AbstractPodmanMojo
         
         
         // build
-        String imageId = execute("podman", "build", "--file", containerFile.getAbsolutePath(), ".");
+//        String imageId = execute("podman", "build", "--file", containerFile.getAbsolutePath(), ".");
+        String imageId = execute("podman", "build", "--file", containerFile.toString(), ".");
         
         // tag
         if (tags != null && tags.length > 0) {
@@ -101,9 +98,7 @@ public class PodmanBuildMojo extends AbstractPodmanMojo
 	        	{
 		        	List<String> command = podmanCommand();
 		        	command.add("rmi");
-		        	for (String tag : tags) {
-		        		command.add(tag);
-		        	}
+                    command.addAll(java.util.Arrays.asList(tags));
 		        	execute(command, List.of(0,1,125));
 	        	}
 	        	
@@ -112,9 +107,7 @@ public class PodmanBuildMojo extends AbstractPodmanMojo
 		        	List<String> command = podmanCommand();
 		        	command.add("tag");
 		        	command.add(imageId);
-		        	for (String tag : tags) {
-		        		command.add(tag);
-		        	}
+                    command.addAll(java.util.Arrays.asList(tags));
 		        	execute(command);
 	        	}
         	}
