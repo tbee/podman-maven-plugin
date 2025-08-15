@@ -54,7 +54,8 @@ public class PodmanBuildMojo extends AbstractPodmanMojo {
      */
 	@Parameter(property = "podman.registry", defaultValue = "false", required = true, readonly = false)
 	protected Boolean pullFromRegistry;
-	
+
+    // https://docs.podman.io/en/stable/Commands.html
     public void execute() throws MojoExecutionException {
 
     	// check containerFile
@@ -77,7 +78,6 @@ public class PodmanBuildMojo extends AbstractPodmanMojo {
         
         
         // build
-//        String imageId = execute("podman", "build", "--file", containerFile.getAbsolutePath(), ".");
         String imageId = execute("podman", "build", "--file", containerFile.toString(), ".");
         
         // tag
@@ -86,6 +86,7 @@ public class PodmanBuildMojo extends AbstractPodmanMojo {
         	String tempTag = "tag"  + imageId;
 			try {
 	        	// place temporarily tag (to lock down the image)
+                // https://docs.podman.io/en/stable/markdown/podman-tag.1.html
 	        	{
 		        	List<String> command = podmanCommand();
 		        	command.add("tag");
@@ -95,14 +96,16 @@ public class PodmanBuildMojo extends AbstractPodmanMojo {
 	        	}
 	        	
 	        	// rmi (remove) any existing tags
+                // https://docs.podman.io/en/stable/markdown/podman-rmi.1.html
 	        	{
 		        	List<String> command = podmanCommand();
 		        	command.add("rmi");
                     command.addAll(java.util.Arrays.asList(tags));
-		        	execute(command, List.of(0,1,125));
+		        	execute(command, List.of(0, 1, 125));
 	        	}
 	        	
 	        	// tag again
+                // https://docs.podman.io/en/stable/markdown/podman-tag.1.html
 	        	{
 		        	List<String> command = podmanCommand();
 		        	command.add("tag");
@@ -113,10 +116,11 @@ public class PodmanBuildMojo extends AbstractPodmanMojo {
         	}
         	finally { 
         		// rmi (remove) temporarily tag
+                // https://docs.podman.io/en/stable/markdown/podman-rmi.1.html
 	        	List<String> command = podmanCommand();
 	        	command.add("rmi");
         		command.add(tempTag);
-	        	execute(command, List.of(0,1,125));
+	        	execute(command, List.of(0, 1, 125));
         	}
         }
     }
