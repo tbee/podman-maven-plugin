@@ -13,9 +13,9 @@ import java.util.ArrayList;
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- * 
+ *
  *      http://www.apache.org/licenses/LICENSE-2.0
- * 
+ *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,14 +25,19 @@ import java.util.ArrayList;
  */
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
+import org.apache.maven.plugin.logging.Log;
+import org.apache.maven.plugins.annotations.Component;
 import org.apache.maven.plugins.annotations.Parameter;
 import org.apache.maven.project.MavenProject;
 
 import edu.emory.mathcs.backport.java.util.Arrays;
+import org.apache.maven.settings.Server;
+import org.apache.maven.settings.Settings;
 
 /*
  * 
@@ -42,6 +47,10 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 	// get access to the project parameters (pom.xml)
 	@Parameter(defaultValue="${project}", readonly=true, required=true)
 	protected MavenProject project;
+
+	// Get access to the settings (~/.m2/settings.xml)
+	@Parameter(defaultValue = "${settings}", readonly = true, required = true)
+	protected Settings settings;
 
     /**
      * Use insecure communication
@@ -85,7 +94,18 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 		public String url;
 		public String user;
 		public String password;
-		
+
+		void optionallyUseSettings(Settings settings, Log log) {
+			Server server = settings.getServer(hostname);
+			if (user == null && server != null) {
+				user = server.getUsername();
+				if (user != null) log.info("Using user from settings.xml");
+			}
+			if (password == null && server != null) {
+				password = server.getPassword();
+				if (password != null) log.info("Using password from settings.xml");
+			}
+		}
 		public String toString() {
 			return user + "@" + url;
 		}

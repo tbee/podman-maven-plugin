@@ -31,8 +31,9 @@ public class PodmanPushMojo extends AbstractPodmanMojo {
     public void execute() throws MojoExecutionException {
     	
     	if (registry != null) {
-    		
-        	// login
+			registry.optionallyUseSettings(this.settings, getLog());
+
+			// login
         	{
 	        	List<String> command = podmanCommand();
 	        	command.add("login");

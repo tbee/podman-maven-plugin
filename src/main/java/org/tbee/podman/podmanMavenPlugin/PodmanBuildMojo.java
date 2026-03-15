@@ -30,6 +30,7 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import edu.emory.mathcs.backport.java.util.Arrays;
+import org.apache.maven.settings.Server;
 
 /**
  * The goal that builds, and if successful tags, a container image usually during install.
@@ -73,6 +74,7 @@ public class PodmanBuildMojo extends AbstractPodmanMojo {
         	registries.addAll(Arrays.asList(this.registries));
         }
         for (Registry registry : registries) {
+			registry.optionallyUseSettings(this.settings, getLog());
         	execute("podman", "login", "-u", registry.user, "-p", registry.password, registry.url);
         }
         
