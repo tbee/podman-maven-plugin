@@ -62,7 +62,7 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 	protected Boolean silent;
 
     /**
-     * Lets podman generate debug outpu 
+     * Lets podman generate debug output
      */
 	@Parameter(property = "podman.debug", defaultValue = "false", required = true, readonly = false)
 	protected Boolean debug;
@@ -81,6 +81,7 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 
 	static public class Registry {
 		public String hostname;
+		public String hostpath = "";
 		public String url;
 		public String user;
 		public String password;
@@ -138,7 +139,7 @@ abstract public class AbstractPodmanMojo extends AbstractMojo
 			) {
 				String line;
 				while ((line = reader.readLine()) != null) {
-					getLog().error(line);
+					getLog().info(line);
 				}
 			}
 			

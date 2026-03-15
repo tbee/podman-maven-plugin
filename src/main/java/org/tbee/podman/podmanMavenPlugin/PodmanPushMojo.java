@@ -26,15 +26,8 @@ import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
 import org.apache.maven.plugins.annotations.Mojo;
 
-/**
- * 
- */
 @Mojo(name = "push", defaultPhase = LifecyclePhase.DEPLOY)
-public class PodmanPushMojo extends AbstractPodmanMojo
-{
-	/**
-	 * 
-	 */
+public class PodmanPushMojo extends AbstractPodmanMojo {
     public void execute() throws MojoExecutionException {
     	
     	if (registry != null) {
@@ -58,7 +51,7 @@ public class PodmanPushMojo extends AbstractPodmanMojo
             if (tags != null && tags.length > 0) {
             	
 	        	for (String tag : tags) {
-	        		String pushTag = registry.hostname + "/" + tag;
+	        		String pushTag = registry.hostname + registry.hostpath + "/" + tag;
 	        		
 	            	// rmi
 	            	{
