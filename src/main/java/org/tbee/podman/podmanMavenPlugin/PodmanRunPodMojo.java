@@ -21,6 +21,7 @@ package org.tbee.podman.podmanMavenPlugin;
  */
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.maven.plugin.MojoExecutionException;
@@ -80,6 +81,10 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 	@Parameter(defaultValue = "${mojoExecution.configuration}", readonly = true)
 	protected Xpp3Dom mojoConfiguration;
 
+	private final List<String> detachedContainerNames = Collections.synchronizedList(new ArrayList<>());
+	private volatile boolean runCompleted;
+	private Thread shutdownHook;
+
 	// https://docs.podman.io/en/latest/markdown/podman-pod-create.1.html
 	public static class Pod {
 		public String name;
@@ -105,10 +110,54 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 	public void execute() throws MojoExecutionException {
 		validateConfiguration();
 		applyArrayFallbackConfiguration();
+		registerShutdownHook();
 
 		removePod();
 		createPod();
 		startContainers();
+		runCompleted = true;
+	}
+
+	private void registerShutdownHook() {
+		shutdownHook = new Thread(this::cleanupOnInterrupt, "podman-runpod-cleanup");
+		Runtime.getRuntime().addShutdownHook(shutdownHook);
+	}
+
+	private void cleanupOnInterrupt() {
+		if (runCompleted) {
+			return;
+		}
+		try {
+			List<String> containerNames;
+			synchronized (detachedContainerNames) {
+				containerNames = new ArrayList<>(detachedContainerNames);
+			}
+			for (String containerName : containerNames) {
+				execute(stopCommand(containerName), List.of(0, 1, 125));
+			}
+			if (pod != null && pod.name != null && !pod.name.isBlank()) {
+				execute(removePodCommand(), List.of(0, 1, 125));
+			}
+		}
+		catch (Exception e) {
+			getLog().warn("Interrupted cleanup failed: " + e.getMessage());
+		}
+	}
+
+	private List<String> stopCommand(String containerName) {
+		List<String> command = podmanCommand();
+		command.add("stop");
+		command.add(containerName);
+		return command;
+	}
+
+	private List<String> removePodCommand() {
+		List<String> command = podmanCommand();
+		command.add("pod");
+		command.add("rm");
+		command.add("-f");
+		command.add(pod.name);
+		return command;
 	}
 
 	private void validateConfiguration() throws MojoExecutionException {
@@ -230,6 +279,7 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 			// Detach all containers except the last
 			if (container != containers[containers.length - 1]) {
 				command.add("--detach");
+				detachedContainerNames.add(container.name);
 			}
 			command.add("--rm");
 			command.add("--replace");
