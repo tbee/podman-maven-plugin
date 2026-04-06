@@ -23,6 +23,12 @@ package org.tbee.podman.podmanMavenPlugin;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugins.annotations.LifecyclePhase;
@@ -54,6 +60,7 @@ import org.codehaus.plexus.util.xml.Xpp3Dom;
 ///                                     <containers>
 ///                                         <container>
 ///                                             <image>redis:7-alpine</image>
+/// 											<mute>true</mute>
 ///                                         </container>
 ///                                         <container>
 ///                                             <image>org.tbee.spotifydanceinfo/spotify-dance-info:${project.version}</image>
@@ -81,7 +88,8 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 	@Parameter(defaultValue = "${mojoExecution.configuration}", readonly = true)
 	protected Xpp3Dom mojoConfiguration;
 
-	private final List<String> detachedContainerNames = Collections.synchronizedList(new ArrayList<>());
+	private final List<Process> logProcesses = Collections.synchronizedList(new ArrayList<>());
+	private final CountDownLatch stopSignal = new CountDownLatch(1);
 	private volatile boolean runCompleted;
 	private Thread shutdownHook;
 
@@ -105,6 +113,7 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 		public String[] addHost;
 		public String workdir;
 		public String user;
+		public boolean mute = false; // If true, do not follow the container's log
 	}
 
 	public void execute() throws MojoExecutionException {
@@ -112,10 +121,19 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 		applyArrayFallbackConfiguration();
 		registerShutdownHook();
 
-		removePod();
-		createPod();
-		startContainers();
-		runCompleted = true;
+		try {
+			removePod();
+			createPod();
+			startContainers();
+			startLogFollowers();
+			waitUntilStopped();
+			runCompleted = true;
+		}
+		catch (InterruptedException e) {
+			Thread.currentThread().interrupt();
+			cleanupOnInterrupt();
+			throw new MojoExecutionException("runPod interrupted", e);
+		}
 	}
 
 	private void registerShutdownHook() {
@@ -128,26 +146,40 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 			return;
 		}
 		try {
-			List<String> containerNames;
-			synchronized (detachedContainerNames) {
-				containerNames = new ArrayList<>(detachedContainerNames);
+			stopSignal.countDown();
+
+			synchronized (logProcesses) {
+				for (Process process : logProcesses) {
+					if (process.isAlive()) {
+						process.destroy();
+					}
+				}
 			}
-			for (String containerName : containerNames) {
-				execute(stopCommand(containerName), List.of(0, 1, 125));
+
+			for (Container container : containers) {
+				execute(stopContainerCommand(container.name), List.of(0, 1, 125));
 			}
-			if (pod != null && pod.name != null && !pod.name.isBlank()) {
-				execute(removePodCommand(), List.of(0, 1, 125));
-			}
+
+			execute(stopPodCommand(), List.of(0, 1, 125));
+			execute(removePodCommand(), List.of(0, 1, 125));
 		}
 		catch (Exception e) {
 			getLog().warn("Interrupted cleanup failed: " + e.getMessage());
 		}
 	}
 
-	private List<String> stopCommand(String containerName) {
+	private List<String> stopContainerCommand(String containerName) {
 		List<String> command = podmanCommand();
 		command.add("stop");
 		command.add(containerName);
+		return command;
+	}
+
+	private List<String> stopPodCommand() {
+		List<String> command = podmanCommand();
+		command.add("pod");
+		command.add("stop");
+		command.add(pod.name);
 		return command;
 	}
 
@@ -276,11 +308,7 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 		for (Container container : containers) {
 			List<String> command = new ArrayList<>(podmanCommand());
 			command.add("run");
-			// Detach all containers except the last
-			if (container != containers[containers.length - 1]) {
-				command.add("--detach");
-				detachedContainerNames.add(container.name);
-			}
+			command.add("--detach");
 			command.add("--rm");
 			command.add("--replace");
 			command.add("--pod");
@@ -303,6 +331,69 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 			command.add(container.image);
 
 			execute(command);
+		}
+	}
+
+	private void startLogFollowers() throws MojoExecutionException {
+		for (Container container : containers) {
+			if (container.mute) {
+				continue;
+			}
+			String containerName = container.name;
+			List<String> command = podmanCommand();
+			command.add("logs");
+			command.add("--follow");
+			command.add(containerName);
+			Process process = startProcess(command);
+			logProcesses.add(process);
+			startLogPump(process.getInputStream(), containerName, false);
+			startLogPump(process.getErrorStream(), containerName, true);
+		}
+	}
+
+	private Process startProcess(List<String> command) throws MojoExecutionException {
+		try {
+			if (verbose) {
+				String commandText = "";
+				for (String arg : command) {
+					commandText += arg + " ";
+				}
+				getLog().info(project.getBasedir().getAbsolutePath() + ": " + commandText);
+			}
+			ProcessBuilder processBuilder = new ProcessBuilder();
+			processBuilder.directory(project.getBasedir());
+			processBuilder.command(command);
+			return processBuilder.start();
+		}
+		catch (Exception e) {
+			throw new MojoExecutionException(e.getMessage(), e);
+		}
+	}
+
+	private void startLogPump(InputStream inputStream, String containerName, boolean errorStream) {
+		Thread thread = new Thread(() -> {
+			try (BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream))) {
+				String line;
+				while ((line = reader.readLine()) != null) {
+					if (errorStream) {
+						getLog().warn(containerName + ": " + line);
+					}
+					else {
+						getLog().info(containerName + ": " + line);
+					}
+				}
+			}
+			catch (Exception e) {
+				getLog().warn("Failed to stream logs for " + containerName + ": " + e.getMessage());
+			}
+		}, "podman-log-" + containerName + (errorStream ? "-err" : "-out"));
+		thread.setDaemon(true);
+		thread.start();
+	}
+
+	private void waitUntilStopped() throws InterruptedException {
+		while (!stopSignal.await(1, TimeUnit.SECONDS)) {
+			// keep mojo alive until shutdown signal is received
 		}
 	}
 
