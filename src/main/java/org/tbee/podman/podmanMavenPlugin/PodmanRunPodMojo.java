@@ -23,6 +23,7 @@ package org.tbee.podman.podmanMavenPlugin;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -123,6 +124,8 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 
 		try {
 			removePod();
+			removeNetwork();
+			createNetwork();
 			createPod();
 			startContainers();
 			startLogFollowers();
@@ -162,6 +165,7 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 
 			execute(stopPodCommand(), List.of(0, 1, 125));
 			execute(removePodCommand(), List.of(0, 1, 125));
+			execute(removeNetworkCommand(), List.of(0, 1, 125));
 		}
 		catch (Exception e) {
 			getLog().warn("Interrupted cleanup failed: " + e.getMessage());
@@ -192,10 +196,33 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 		return command;
 	}
 
+	private List<String> createNetworkCommand() {
+		List<String> command = podmanCommand();
+		command.add("network");
+		command.add("create");
+		command.add(pod.network);
+		return command;
+	}
+
+	private List<String> removeNetworkCommand() {
+		List<String> command = podmanCommand();
+		command.add("network");
+		command.add("rm");
+		command.add(pod.network);
+		return command;
+	}
+
 	private void validateConfiguration() throws MojoExecutionException {
-		if (pod == null || pod.name == null || pod.name.isBlank()) {
-			throw new MojoExecutionException("pod.name is required");
+		if (pod == null) {
+			pod = new Pod();
 		}
+		if (pod.name == null || pod.name.isBlank()) {
+			pod.name = project.getName().toLowerCase(Locale.ROOT) + "-pod";
+		}
+		if (pod.network == null || pod.network.isBlank()) {
+			pod.network = pod.name.replaceAll("[^a-zA-Z0-9-_.]", "");
+		}
+
 		if (containers == null || containers.length == 0) {
 			throw new MojoExecutionException("At least one container is required");
 		}
@@ -286,17 +313,22 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 		execute(command, List.of(0, 1, 125));
 	}
 
+	private void removeNetwork() throws MojoExecutionException {
+		execute(removeNetworkCommand(), List.of(0, 1, 125));
+	}
+
+	private void createNetwork() throws MojoExecutionException {
+		execute(createNetworkCommand());
+	}
+
 	private void createPod() throws MojoExecutionException {
 		List<String> command = podmanCommand();
 		command.add("pod");
 		command.add("create");
 		command.add("--name");
 		command.add(pod.name);
-
-		if (pod.network != null && !pod.network.isBlank()) {
-			command.add("--network");
-			command.add(pod.network);
-		}
+		command.add("--network");
+		command.add(pod.network);
 		add(command, "--publish", pod.publish);
 		add(command, "--dns", pod.dns);
 		add(command, "--add-host", pod.addHost);
