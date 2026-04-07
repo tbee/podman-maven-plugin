@@ -114,6 +114,7 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 		public String[] addHost;
 		public String workdir;
 		public String user;
+		public boolean detach = true; // You may wait for an initContainer to complete
 		public boolean mute = false; // If true, do not follow the container's log
 	}
 
@@ -340,7 +341,9 @@ public class PodmanRunPodMojo extends AbstractPodmanMojo {
 		for (Container container : containers) {
 			List<String> command = new ArrayList<>(podmanCommand());
 			command.add("run");
-			command.add("--detach");
+			if (container.detach) {
+				command.add("--detach");
+			}
 			command.add("--rm");
 			command.add("--replace");
 			command.add("--pod");
