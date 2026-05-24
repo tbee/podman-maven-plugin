@@ -30,7 +30,6 @@ import org.apache.maven.plugins.annotations.Mojo;
 import org.apache.maven.plugins.annotations.Parameter;
 
 import edu.emory.mathcs.backport.java.util.Arrays;
-import org.apache.maven.settings.Server;
 
 /**
  * The goal that builds, and if successful tags, a container image usually during install.
@@ -56,7 +55,13 @@ public class PodmanBuildMojo extends AbstractPodmanMojo {
 	@Parameter(property = "podman.registry", defaultValue = "false", required = true, readonly = false)
 	protected Boolean pullFromRegistry;
 
-    // https://docs.podman.io/en/stable/Commands.html
+	/**
+	 * Use cache
+	 */
+	@Parameter(property = "podman.useCache", defaultValue = "true", required = true, readonly = false)
+	protected Boolean useCache;
+
+	// https://docs.podman.io/en/stable/Commands.html
     public void execute() throws MojoExecutionException {
 
     	// check containerFile
@@ -80,8 +85,16 @@ public class PodmanBuildMojo extends AbstractPodmanMojo {
         
         
         // build
-        String imageId = execute("podman", "build", "--file", containerFile.toString(), ".");
-        
+		List<String> imageIdCommand = podmanCommand();
+		imageIdCommand.add("build");
+		if (!useCache) {
+			imageIdCommand.add("--no-cache");
+		}
+		imageIdCommand.add("--file");
+		imageIdCommand.add(containerFile.toString());
+		imageIdCommand.add(".");
+		String imageId = execute(imageIdCommand);
+
         // tag
         if (tags != null && tags.length > 0) {
 
